@@ -94,11 +94,13 @@ async def crawl(start_url, max_pages=10, same_domain=True, progress_callback=Non
         
         try:
             browser = await p.chromium.launch(headless=True, args=browser_args)
-        except Exception:
+        except Exception as e:
             # If launch fails, try installing the browser
+            print(f"Error launching browser: {e}")
             import subprocess
             print("Browser not found, installing...")
             subprocess.run(["python", "-m", "playwright", "install", "chromium"])
+            # Try launching again
             browser = await p.chromium.launch(headless=True, args=browser_args)
 
         context = await browser.new_context()
