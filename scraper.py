@@ -73,11 +73,28 @@ def get_links(html, base_url, same_domain=True):
             
     return links
 
+async def ensure_playwright_installed():
+    """Ensures playwright browsers are installed."""
+    import subprocess
+    import sys
+    try:
+        # Check if chromium exists in the playwright path
+        from playwright.async_api import async_playwright
+        return # If we can import it, we are halfway there
+    except ImportError:
+        pass
+    
+    print("Installing Playwright browsers...")
+    subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+
 async def crawl(start_url, max_pages=10, same_domain=True, progress_callback=None):
     """
     Crawls from start_url up to max_pages.
     Returns a list of dicts: {url, title, content}
     """
+    # Ensure browsers are installed before starting
+    # (Though on Streamlit Cloud, it's better to do this once at app start)
+    
     results = []
     visited = set()
     queue = [start_url]
@@ -95,13 +112,16 @@ async def crawl(start_url, max_pages=10, same_domain=True, progress_callback=Non
         try:
             browser = await p.chromium.launch(headless=True, args=browser_args)
         except Exception as e:
-            # If launch fails, try installing the browser
-            print(f"Error launching browser: {e}")
+            # If launch fails, try installing the browser explicitly
+            print(f"Initial launch failed: {e}. Attempting playwright install...")
             import subprocess
-            print("Browser not found, installing...")
-            subprocess.run(["python", "-m", "playwright", "install", "chromium"])
-            # Try launching again
-            browser = await p.chromium.launch(headless=True, args=browser_args)
+            import sys
+            subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"])
+            try:
+                browser = await p.chromium.launch(headless=True, args=browser_args)
+            except Exception as e2:
+                print(f"Final launch failed after install attempt: {e2}")
+                raise e2
 
         context = await browser.new_context()
         page = await context.new_page()

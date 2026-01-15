@@ -1,12 +1,27 @@
 import streamlit as st
 import asyncio
 import nest_asyncio
+import subprocess
+import sys
 from scraper import crawl
 
 # Fix for asyncio loop in Streamlit
 nest_asyncio.apply()
 
+# Pre-install playwright browsers on startup if in cloud
+@st.cache_resource
+def install_playwright():
+    try:
+        subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+        return True
+    except Exception as e:
+        st.error(f"Failed to install Playwright: {e}")
+        return False
+
 st.set_page_config(page_title="API Doc Scraper", page_icon="🕷️", layout="wide")
+
+# Run installation
+install_playwright()
 
 st.title("🕷️ API Documentation Scraper")
 st.markdown("""
