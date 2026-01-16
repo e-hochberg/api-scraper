@@ -87,18 +87,23 @@ async def ensure_playwright_installed():
     print("Installing Playwright browsers...")
     subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
 
-async def crawl(start_url, max_pages=10, same_domain=True, progress_callback=None):
+async def crawl(urls, max_pages=10, same_domain=True, progress_callback=None):
     """
-    Crawls from start_url up to max_pages.
+    Crawls from a list of starting URLs up to max_pages.
     Returns a list of dicts: {url, title, content}
     """
-    # Ensure browsers are installed before starting
-    # (Though on Streamlit Cloud, it's better to do this once at app start)
-    
+    if isinstance(urls, str):
+        urls = [urls]
+        
     results = []
     visited = set()
-    queue = [start_url]
-    visited.add(normalize_url(start_url))
+    queue = []
+    
+    for u in urls:
+        norm_u = normalize_url(u)
+        if norm_u not in visited:
+            visited.add(norm_u)
+            queue.append(u)
     
     async with async_playwright() as p:
         # Launch options for headless environments
